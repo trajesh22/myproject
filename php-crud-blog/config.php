@@ -1,13 +1,14 @@
 <?php
-$host = "localhost";
-$port = 3307; // Use your port number here
-$username = "root";
-$password = "admin123"; // Use your actual password
-$database = "blog";
+$host = 'localhost';
+$port = 3307; // Your custom port
+$db = 'blog';
+$user = 'root';
+$pass = 'admin123'; // Your MySQL password
 
-$conn = new mysqli($host, $username, $password, $database, $port);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+try {
+    $pdo = new PDO("mysql:host=$host;port=$port;dbname=$db", $user, $pass);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
 }
 ?>

@@ -7,10 +7,11 @@ if ($mysqli->connect_errno) {
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $username = $_POST["username"];
     $password = password_hash($_POST["password"], PASSWORD_DEFAULT);
+    $role = 'editor'; // default role
 
-    $stmt = $mysqli->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-    $stmt->bind_param("ss", $username, $password);
-    
+    $stmt = $mysqli->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
+    $stmt->bind_param("sss", $username, $password, $role);
+
     if ($stmt->execute()) {
         echo "Registration successful. <a href='login.php'>Login here</a>";
     } else {

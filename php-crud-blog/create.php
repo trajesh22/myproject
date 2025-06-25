@@ -1,38 +1,30 @@
 <?php include 'auth.php'; ?>
+<?php include 'config.php'; ?>
+
 <?php
-// Show all PHP errors
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+$error = "";
+$title = "";
+$content = "";
 
-// Connect to the database
-$mysqli = new mysqli("localhost", "root", "admin123", "blog", 3307);
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $title = trim($_POST["title"] ?? '');
+    $content = trim($_POST["content"] ?? '');
 
-// Check connection
-if ($mysqli->connect_errno) {
-    die("Connection failed: " . $mysqli->connect_error);
-}
-
-// Handle form submission
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $title = $_POST["title"] ?? '';
-    $content = $_POST["content"] ?? '';
-
-    // Validate inputs (optional)
+    // ✅ Server-side validation
     if (empty($title) || empty($content)) {
-        echo "Both title and content are required.";
+        $error = "❌ Title and content are required.";
+    } elseif (strlen($title) >= 100) {
+        $error = "❌ Title cannot exceed 100 characters.";
     } else {
-        // Use prepared statement to insert
-        $stmt = $mysqli->prepare("INSERT INTO posts (title, content) VALUES (?, ?)");
-        $stmt->bind_param("ss", $title, $content);
-
-        if ($stmt->execute()) {
+        try {
+            // ✅ Insert securely with prepared statement
+            $stmt = $pdo->prepare("INSERT INTO posts (title, content) VALUES (?, ?)");
+            $stmt->execute([$title, $content]);
             header("Location: index.php");
             exit();
-        } else {
-            echo "Error: " . $stmt->error;
+        } catch (PDOException $e) {
+            $error = "❌ Database error: " . $e->getMessage();
         }
-
-        $stmt->close();
     }
 }
 ?>
@@ -44,12 +36,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 <body>
     <h1>Create a New Post</h1>
+
+    <!-- Show error if any -->
+    <?php if (!empty($error)): ?>
+        <p style="color:red;"><?php echo $error; ?></p>
+    <?php endif; ?>
+
     <form method="POST" action="">
-        <label>Title:</label><br>
-        <input type="text" name="title" required><br><br>
+        <label>Title (max 100 chars):</label><br>
+        <input type="text" name="title" value="<?= htmlspecialchars($title) ?>" maxlength="100" required><br><br>
 
         <label>Content:</label><br>
-        <textarea name="content" required></textarea><br><br>
+        <textarea name="content" required><?= htmlspecialchars($content) ?></textarea><br><br>
 
         <button type="submit">Create</button>
     </form>

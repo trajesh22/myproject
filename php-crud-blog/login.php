@@ -1,77 +1,44 @@
 <?php
-// Show PHP errors (helps with debugging)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
-
-// Start session to store login status
 session_start();
 
-// Connect to MySQL
-$mysqli = new mysqli("localhost", "root", "admin123", "blog", 3307);
+$pdo = new PDO("mysql:host=localhost;port=3307;dbname=blog", "root", "admin123");
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// Check connection
-if ($mysqli->connect_errno) {
-    die("Connection failed: " . $mysqli->connect_error);
-}
-
-// Handle form submission
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $username = $_POST["username"] ?? '';
     $password = $_POST["password"] ?? '';
 
-    // Use prepared statement to prevent SQL injection
-    $stmt = $mysqli->prepare("SELECT id, password FROM users WHERE username = ?");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
+    $stmt = $pdo->prepare("SELECT id, password, role FROM users WHERE username = ?");
+    $stmt->execute([$username]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    $result = $stmt->get_result();
-
-    // Check if user exists
-    if ($result && $result->num_rows === 1) {
-        $user = $result->fetch_assoc();
-
-        // Verify password using password_verify
-        if (password_verify($password, $user["password"])) {
-            $_SESSION["user_id"] = $user["id"];
-            $_SESSION["username"] = $username;
-            header("Location: index.php"); // Redirect to home page
-            exit();
-        } else {
-            $error = "❌ Invalid password.";
-        }
+    if ($user && password_verify($password, $user["password"])) {
+        $_SESSION["user_id"] = $user["id"];
+        $_SESSION["username"] = $username;
+        $_SESSION["role"] = $user["role"];
+        header("Location: index.php");
+        exit();
     } else {
-        $error = "❌ No user found.";
+        $error = "❌ Invalid username or password.";
     }
-
-    $stmt->close();
 }
-
-$mysqli->close();
 ?>
 
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Login</title>
-</head>
+<head><title>Login</title></head>
 <body>
-    <h2>Login</h2>
-
-    <!-- Show error message -->
-    <?php if (!empty($error)): ?>
-        <p style="color:red;"><?php echo $error; ?></p>
-    <?php endif; ?>
-
-    <form method="POST" action="login.php">
-        <label>Username:</label><br>
-        <input type="text" name="username" required><br><br>
-
-        <label>Password:</label><br>
-        <input type="password" name="password" required><br><br>
-
-        <button type="submit">Login</button>
-    </form>
-
-    <p>Don't have an account? <a href="register.php">Register here</a></p>
+<h2>Login</h2>
+<?php if (!empty($error)): ?>
+    <p style="color:red;"><?php echo $error; ?></p>
+<?php endif; ?>
+<form method="POST">
+    Username: <input type="text" name="username" required><br><br>
+    Password: <input type="password" name="password" required><br><br>
+    <button type="submit">Login</button>
+</form>
+<p>Don't have an account? <a href="register.php">Register</a></p>
 </body>
 </html>
